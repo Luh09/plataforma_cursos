@@ -5,11 +5,16 @@ from django.shortcuts import redirect
 import hashlib
 
 def cadastro(request):
+    if request.session.get('usuario'):
+        return redirect('/home')
     status = request.GET.get('status')
     return render(request, 'cadastro.html',{'status':status})
 
 def login(request):
-    return render(request,'login.html')
+    if request.session.get('usuario'):
+        return redirect('/home')
+    status = request.GET.get('status')
+    return render(request,'login.html',{'status': status})
 
 def valida_cadastro(request):
     nome = request.POST.get('nome')
@@ -36,3 +41,19 @@ def valida_cadastro(request):
         return redirect('/auth/cadastro?status=0')
     except:
         return HttpResponse('ERRO INTERNO DO SISTEMA,TENTE NOVAMENTE EM INSTANTES')
+
+def valida_login(request):
+    email = request.POST.get('email')
+    senha = request.POST.get('senha')
+    senha = hashlib.sha256(senha.encode()).hexdigest()
+    usuarios = Usuario.objects.filter(email = email).filter(senha = senha)
+
+    if len(usuarios) == 0:
+        return redirect('/auth/login?status=1')
+    elif len(usuarios) > 0:
+        request.session['usuario'] = usuarios[0].id
+        return redirect('/home')
+
+def sair(request):
+    request.session.flush()
+    return redirect('/auth/login')
